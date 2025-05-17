@@ -1,0 +1,58 @@
+.transaction-card {
+  border: 1px solid var(--color-neutral);
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.transaction-type-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.transaction-inbound {
+  background-color: rgba(13, 148, 136, 0.15);
+  color: var(--color-secondary-dark);
+}
+
+.transaction-outbound {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.transaction-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.quantity-change {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+  background-color: rgba(226, 232, 240, 0.3);
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.quantity-item {
+  text-align: center;
+}
+
+.transaction-timestamp {
+  font-size: 13px;
+  color: var(--color-neutral-dark);
+}
