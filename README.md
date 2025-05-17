@@ -4,11 +4,27 @@ A warehouse inventory management system for third-party logistics (3PL) provider
 
 ## Current Status
 
-The application currently has a working:
+The application has a working:
 - Express.js backend API
 - Supabase database integration
-- Frontend interface with client-side JavaScript
+- Modernized UI with improved styling
+- Modular code structure for better maintainability
 - CRUD operations for clients, products, and transactions
+
+## Recent Updates
+
+### Code Restructuring (May 17, 2025)
+- Refactored monolithic HTML/CSS/JS into modular files
+- Created separate CSS files for each component (main, dashboard, clients, products, transactions)
+- Created separate JavaScript modules for each component
+- Improved maintainability and readability of code
+
+### UI Enhancements (May 17, 2025)
+- Added modern fonts using Google Fonts (Inter)
+- Enhanced color scheme with a professional palette
+- Added gradient backgrounds for visual appeal
+- Improved styling for cards and buttons
+- Refined overall visual hierarchy
 
 ## Project Structure
 3pl-management-system/
@@ -16,7 +32,18 @@ The application currently has a working:
 ├── package.json          # Project dependencies
 ├── public/               # Static files served by Express
 │   ├── index.html        # Main frontend interface
-│   └── styles.css        # CSS styles (if applicable)
+│   ├── css/              # CSS files
+│   │   ├── main.css      # Core styles
+│   │   ├── dashboard.css # Dashboard specific styles
+│   │   ├── clients.css   # Client management styles
+│   │   ├── products.css  # Product management styles
+│   │   └── transactions.css # Transaction styles
+│   └── js/               # JavaScript files
+│       ├── main.js       # Core functionality
+│       ├── dashboard.js  # Dashboard functionality
+│       ├── clients.js    # Client management functionality
+│       ├── products.js   # Product management functionality
+│       └── transactions.js # Transaction functionality
 ├── src/                  # Server-side code
 │   ├── index.js          # Main application entry point
 │   ├── config/           # Configuration files
@@ -129,33 +156,53 @@ git clone https://github.com/YourUsername/3pl-management-system.git
 cd 3pl-management-system
 
 2. Install dependencies
-
-bashnpm install
+npm install
 
 3. Create a .env file with your Supabase credentials
-
 PORT=3001
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_KEY=your-anon-key
 
 4. Start the development server
-
-bashnpm run dev
+npm run dev
 
 5. Access the application at http://localhost:3001
 
-Future Enhancements**
+Planned Enhancements
+Short-term Plans
+
+Add a modern toast notification system
+Enhance card and button hover effects
+Improve form styling for better user experience
+Add loading spinners for data fetching operations
+
+Medium-term Plans
+
+Add data visualization for inventory statistics
+Implement a dark mode theme option
+Mobile-optimize the interface
+Add barcode scanning capability
+
+Long-term Plans
 
 User authentication and authorization
-Enhanced UI with modern framework (React, Vue, etc.)
-Reporting and analytics
-Barcode scanning functionality
-Mobile optimization
-Email notifications
-Enhanced data validation
-Comprehensive error handling
-Testing suite
-Production deployment
+Advanced reporting and analytics
+Email notifications for inventory thresholds
+CSV import/export functionality
+Integration with shipping carriers
+
+Contributing
+If you'd like to contribute to this project, please follow these steps:
+
+Fork the repository
+Create a feature branch (git checkout -b feature/YourFeature)
+Commit your changes (git commit -m 'Add some feature')
+Push to the branch (git push origin feature/YourFeature)
+Open a Pull Request
+
+
+
+
 
 # Claude's Project Knowledge
 
