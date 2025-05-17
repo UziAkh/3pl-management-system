@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3PL Management System</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #4f46e5;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, button, select, textarea {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      width: 100%;
+    }
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: auto;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .item {
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .status {
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .status-active, .status-inbound, .status-in-stock {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .status-inactive, .status-outbound, .status-out-of-stock {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .status-low-stock {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-right: 10px;
+    }
+    .tab.active {
+      border-bottom-color: #4f46e5;
+      font-weight: bold;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .actions button {
+      flex: 1;
+    }
+    .transaction-type {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .transaction-inbound {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .transaction-outbound {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>3PL Management System - Dashboard</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="clients">Clients</div>
+      <div class="tab" data-tab="products">Products</div>
+      <div class="tab" data-tab="transactions">Transactions</div>
+      <div class="tab" data-tab="health">API Health</div>
+    </div>
+    
+    <!-- Clients Tab -->
+    <div class="tab-content active" id="clients-tab">
+      <div class="card">
+        <h2>Client Management</h2>
+        
+        <div class="form-group">
+          <button id="loadClientsBtn">Load All Clients</button>
+        </div>
+        
+        <div id="clientsList"></div>
+        
+        <h3>Add New Client</h3>
+        <form id="addClientForm">
+          <div class="form-group">
+            <label for="clientName">Client Name</label>
+            <input type="text" id="clientName" required>
+          </div>
+          <div class="form-group">
+            <label for="clientCode">Client Code</label>
+            <input type="text" id="clientCode" required>
+          </div>
+          <div class="form-group">
+            <label for="contactName">Contact Name</label>
+            <input type="text" id="contactName">
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email">
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone">
+          </div>
+          <button type="submit">Add Client</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Products Tab -->
+    <div class="tab-content" id="products-tab">
+      <div class="card">
+        <h2>Product Management</h2>
+        
+        <div class="form-group">
+          <button id="loadProductsBtn">Load All Products</button>
+        </div>
+        
+        <div class="form-group">
+          <label for="clientFilter">Filter by Client</label>
+          <select id="clientFilter">
+            <option value="">All Clients</option>
+            <!-- Will be populated dynamically -->
+          </select>
+        </div>
+        
+        <div id="productsList"></div>
+        
+        <h3>Add New Product</h3>
+        <form id="addProductForm">
+          <div class="form-group">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" required>
+          </div>
+          <div class="form-group">
+            <label for="productSku">SKU</label>
+            <input type="text" id="productSku" required>
+          </div>
+          <div class="form-group">
+            <label for="productUpc">UPC (Barcode)</label>
+            <input type="text" id="productUpc">
+          </div>
+          <div class="form-group">
+            <label for="productClient">Client</label>
+            <select id="productClient" required>
+              <option value="">Select a client</option>
+              <!-- Will be populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="productDescription">Description</label>
+            <textarea id="productDescription"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="productQuantity">Initial Quantity</label>
+            <input type="number" id="productQuantity" value="0" min="0">
+          </div>
+          <button type="submit">Add Product</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Transactions Tab -->
+    <div class="tab-content" id="transactions-tab">
+      <div class="card">
+        <h2>Inventory Transactions</h2>
+        
+        <div class="section">
+          <h3>Create New Transaction</h3>
+          <div class="form-group">
+            <label for="transactionType">Transaction Type</label>
+            <select id="transactionType">
+              <option value="inbound">Inbound (Receive)</option>
+              <option value="outbound">Outbound (Ship)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="transactionProduct">Product</label>
+            <select id="transactionProduct" required>
+              <option value="">Select a product</option>
+              <!-- Will be populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="transactionQuantity">Quantity</label>
+            <input type="number" id="transactionQuantity" min="1" value="1" required>
+          </div>
+          <div class="form-group">
+            <label for="transactionReference">Reference (Optional)</label>
+            <input type="text" id="transactionReference" placeholder="PO number, order number, etc.">
+          </div>
+          <div class="form-group">
+            <label for="transactionNotes">Notes (Optional)</label>
+            <textarea id="transactionNotes" placeholder="Additional information about this transaction"></textarea>
+          </div>
+          <button id="createTransactionBtn">Create Transaction</button>
+        </div>
+        
+        <div class="section">
+          <h3>Transaction History</h3>
+          <div class="form-group">
+            <label for="transactionFilter">Filter by Type</label>
+            <select id="transactionFilter">
+              <option value="">All Transactions</option>
+              <option value="inbound">Inbound Only</option>
+              <option value="outbound">Outbound Only</option>
+            </select>
+          </div>
+          <button id="loadTransactionsBtn">Load Transactions</button>
+          <div id="transactionsList"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- API Health Tab -->
+    <div class="tab-content" id="health-tab">
+      <div class="card">
+        <h2>API Health Check</h2>
+        <button id="checkHealthBtn">Check API Health</button>
+        <pre id="healthResult">Click the button to check API health...</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tabs functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // API health check
+    document.getElementById('checkHealthBtn').addEventListener('click', async () => {
+      const resultElement = document.getElementById('healthResult');
+      try {
+        resultElement.textContent = 'Loading...';
+        
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        resultElement.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultElement.textContent = `Error: ${error.message}`;
+      }
+    });
+    
+    // Client functions
+    async function loadClients() {
+      const clientsList = document.getElementById('clientsList');
+      try {
+        clientsList.innerHTML = '<p>Loading clients...</p>';
+        
+        const response = await fetch('/api/clients');
+        const clients = await response.json();
+        
+        if (clients.length === 0) {
+          clientsList.innerHTML = '<p>No clients found.</p>';
+          return;
+        }
+        
+        clientsList.innerHTML = '';
+        clients.forEach(client => {
+          const clientElement = document.createElement('div');
+          clientElement.className = 'item';
+          clientElement.innerHTML = `
+            <h3>${client.name} <span>(${client.code})</span></h3>
+            <p>Contact: ${client.contactName || 'N/A'}</p>
+            <p>Email: ${client.email || 'N/A'}</p>
+            <p>Phone: ${client.phone || 'N/A'}</p>
+            <p>Status: <span class="status ${client.active ? 'status-active' : 'status-inactive'}">${client.active ? 'Active' : 'Inactive'}</span></p>
+            <div class="actions">
+              <button class="edit-client-btn" data-id="${client.id}">Edit</button>
+              <button class="delete-client-btn" data-id="${client.id}">Delete</button>
+            </div>
+          `;
+          clientsList.appendChild(clientElement);
+        });
+        
+        // Add event listeners for edit/delete buttons
+        document.querySelectorAll('.edit-client-btn').forEach(btn => {
+          btn.addEventListener('click', () => editClient(btn.dataset.id));
+        });
+        
+        document.querySelectorAll('.delete-client-btn').forEach(btn => {
+          btn.addEventListener('click', () => deleteClient(btn.dataset.id));
+        });
+        
+        // Update client dropdowns
+        updateClientDropdowns(clients);
+      } catch (error) {
+        clientsList.innerHTML = `<p>Error loading clients: ${error.message}</p>`;
+      }
+    }
+    
+    function updateClientDropdowns(clients) {
+      // Update client filter in products tab
+      const clientFilter = document.getElementById('clientFilter');
+      const productClient = document.getElementById('productClient');
+      
+      // Clear existing options except the first one
+      clientFilter.innerHTML = '<option value="">All Clients</option>';
+      productClient.innerHTML = '<option value="">Select a client</option>';
+      
+      // Add client options
+      clients.forEach(client => {
+        if (client.active) {
+          const filterOption = document.createElement('option');
+          filterOption.value = client.id;
+          filterOption.textContent = client.name;
+          clientFilter.appendChild(filterOption);
+          
+          const selectOption = document.createElement('option');
+          selectOption.value = client.id;
+          selectOption.textContent = client.name;
+          productClient.appendChild(selectOption);
+        }
+      });
+    }
+    
+    async function editClient(id) {
+  try {
+    const response = await fetch(`/api/clients/${id}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch client details');
+    }
+    
+    const client = await response.json();
+    
+    // In a real app, you'd show a modal with a form
+    // For simplicity, we'll just use prompt
+    const newName = prompt('Enter new client name:', client.name);
+    if (newName === null) return;
+    
+    const updateResponse = await fetch(`/api/clients/${id}`, {
+      method: 'PUT',  // Use PUT instead of PATCH for Supabase
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: newName })
+    });
+    
+    if (!updateResponse.ok) {
+      const errorData = await updateResponse.json();
+      throw new Error(errorData.message || 'Failed to update client');
+    }
+    
+    alert('Client updated successfully!');
+    loadClients();
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+}
+    
+    async function deleteClient(id) {
+      if (!confirm('Are you sure you want to delete this client?')) return;
+      
+      try {
+        const response = await fetch(`/api/clients/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          alert('Client deleted successfully!');
+          loadClients();
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    }
+    
+    document.getElementById('loadClientsBtn').addEventListener('click', loadClients);
+    
+    document.getElementById('addClientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const newClient = {
+        name: document.getElementById('clientName').value,
+        code: document.getElementById('clientCode').value,
+        contactName: document.getElementById('contactName').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value
+      };
+      
+      try {
+        const response = await fetch('/api/clients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newClient)
+        });
+        
+        if (response.ok) {
+          alert('Client added successfully!');
+          document.getElementById('addClientForm').reset();
+          loadClients();
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    });
+    
+    // Product functions
+    async function loadProducts(clientId = '') {
+      const productsList = document.getElementById('productsList');
+      try {
+        productsList.innerHTML = '<p>Loading products...</p>';
+        
+        const url = clientId ? `/api/products?clientId=${clientId}` : '/api/products';
+        const response = await fetch(url);
+        const products = await response.json();
+        
+        if (products.length === 0) {
+          productsList.innerHTML = '<p>No products found.</p>';
+          return;
+        }
+        
+        productsList.innerHTML = '';
+        products.forEach(product => {
+          // Determine stock status
+          let stockStatus = { class: 'status-in-stock', text: 'In Stock' };
+          if (product.quantity <= 0) {
+            stockStatus = { class: 'status-out-of-stock', text: 'Out of Stock' };
+          } else if (product.quantity <= 10) {
+            stockStatus = { class: 'status-low-stock', text: 'Low Stock' };
+          }
+          
+          const productElement = document.createElement('div');
+          productElement.className = 'item';
+          productElement.innerHTML = `
+            <h3>${product.name}</h3>
+            <p>SKU: ${product.sku}</p>
+            <p>UPC: ${product.upc || 'N/A'}</p>
+            <p>Client ID: ${product.clientId}</p>
+            <p>Description: ${product.description || 'N/A'}</p>
+            <p>Quantity: ${product.quantity}</p>
+            <p>Status: <span class="status ${stockStatus.class}">${stockStatus.text}</span></p>
+            <div class="actions">
+              <button class="edit-product-btn" data-id="${product.id}">Edit</button>
+              <button class="delete-product-btn" data-id="${product.id}">Delete</button>
+            </div>
+          `;
+          productsList.appendChild(productElement);
+        });
+        
+        // Add event listeners for edit/delete buttons
+        document.querySelectorAll('.edit-product-btn').forEach(btn => {
+          btn.addEventListener('click', () => editProduct(btn.dataset.id));
+        });
+        
+        document.querySelectorAll('.delete-product-btn').forEach(btn => {
+          btn.addEventListener('click', () => deleteProduct(btn.dataset.id));
+        });
+        
+        // Update transaction product dropdown
+        updateProductDropdown(products);
+      } catch (error) {
+        productsList.innerHTML = `<p>Error loading products: ${error.message}</p>`;
+      }
+    }
+    
+    function updateProductDropdown(products) {
+      const transactionProduct = document.getElementById('transactionProduct');
+      
+      // Clear existing options except the first one
+      transactionProduct.innerHTML = '<option value="">Select a product</option>';
+      
+      // Add product options
+      products.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = `${product.name} (${product.sku}) - ${product.quantity} in stock`;
+        transactionProduct.appendChild(option);
+      });
+    }
+    
+    async function editProduct(id) {
+      try {
+        const response = await fetch(`/api/products/${id}`);
+        const product = await response.json();
+        
+        // In a real app, you'd show a modal with a form
+        // For simplicity, we'll just use prompt
+        const newName = prompt('Enter new product name:', product.name);
+        if (newName === null) return;
+        
+        const updateResponse = await fetch(`/api/products/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: newName })
+        });
+        
+        if (updateResponse.ok) {
+          alert('Product updated successfully!');
+          loadProducts(document.getElementById('clientFilter').value);
+        } else {
+          const error = await updateResponse.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    }
+    
+    async function deleteProduct(id) {
+      if (!confirm('Are you sure you want to delete this product?')) return;
+      
+      try {
+        const response = await fetch(`/api/products/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          alert('Product deleted successfully!');
+          loadProducts(document.getElementById('clientFilter').value);
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    }
+    
+    document.getElementById('loadProductsBtn').addEventListener('click', () => {
+      loadProducts(document.getElementById('clientFilter').value);
+    });
+    
+    document.getElementById('clientFilter').addEventListener('change', function() {
+      loadProducts(this.value);
+    });
+    
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const newProduct = {
+        name: document.getElementById('productName').value,
+        sku: document.getElementById('productSku').value,
+        upc: document.getElementById('productUpc').value,
+        clientId: document.getElementById('productClient').value,
+        description: document.getElementById('productDescription').value,
+        quantity: parseInt(document.getElementById('productQuantity').value) || 0
+      };
+      
+      try {
+        const response = await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newProduct)
+        });
+        
+        if (response.ok) {
+          alert('Product added successfully!');
+          document.getElementById('addProductForm').reset();
+          loadProducts(document.getElementById('clientFilter').value);
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    });
+    
+    // Transaction functions
+    async function loadTransactions(type = '') {
+      const transactionsList = document.getElementById('transactionsList');
+      try {
+        transactionsList.innerHTML = '<p>Loading transactions...</p>';
+        
+        const url = type ? `/api/transactions?type=${type}` : '/api/transactions';
+        const response = await fetch(url);
+        const transactions = await response.json();
+        
+        if (transactions.length === 0) {
+          transactionsList.innerHTML = '<p>No transactions found.</p>';
+          return;
+        }
+        
+        transactionsList.innerHTML = '';
+        transactions.forEach(transaction => {
+          const transactionElement = document.createElement('div');
+          transactionElement.className = 'item';
+          transactionElement.innerHTML = `
+            <h3>
+              <span class="transaction-type transaction-${transaction.type}">
+                ${transaction.type === 'inbound' ? 'Received' : 'Shipped'}
+              </span>
+              ${transaction.quantity} units of Product ID: ${transaction.productId}
+            </h3>
+            <p>Date: ${new Date(transaction.createdAt).toLocaleString()}</p>
+            <p>Quantity: ${transaction.quantity}</p>
+            <p>Previous Quantity: ${transaction.previousQuantity}</p>
+            <p>New Quantity: ${transaction.newQuantity}</p>
+            <p>Reference: ${transaction.reference || 'N/A'}</p>
+            <p>Notes: ${transaction.notes || 'N/A'}</p>
+          `;
+          transactionsList.appendChild(transactionElement);
+        });
+      } catch (error) {
+        transactionsList.innerHTML = `<p>Error loading transactions: ${error.message}</p>`;
+      }
+    }
+    
+    document.getElementById('loadTransactionsBtn').addEventListener('click', () => {
+      loadTransactions(document.getElementById('transactionFilter').value);
+    });
+    
+    document.getElementById('transactionFilter').addEventListener('change', function() {
+      loadTransactions(this.value);
+    });
+    
+    document.getElementById('createTransactionBtn').addEventListener('click', async () => {
+      const type = document.getElementById('transactionType').value;
+      const productId = document.getElementById('transactionProduct').value;
+      const quantity = parseInt(document.getElementById('transactionQuantity').value);
+      const reference = document.getElementById('transactionReference').value;
+      const notes = document.getElementById('transactionNotes').value;
+      
+      if (!productId || !quantity || quantity < 1) {
+        alert('Please select a product and enter a valid quantity');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/transactions/${type}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ productId, quantity, reference, notes })
+        });
+        
+        if (response.ok) {
+          alert('Transaction created successfully!');
+          document.getElementById('transactionQuantity').value = '1';
+          document.getElementById('transactionReference').value = '';
+          document.getElementById('transactionNotes').value = '';
+          loadTransactions(document.getElementById('transactionFilter').value);
+          // Reload products to show updated quantities
+          loadProducts(document.getElementById('clientFilter').value);
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.message}`);
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    });
+    
+    // Initialize
+    loadClients();
+    loadProducts();
+    loadTransactions();
+  </script>
+</body>
+</html>

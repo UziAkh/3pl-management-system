@@ -1,0 +1,31 @@
+{
+  "name": "3pl-management-system",
+  "version": "1.0.0",
+  "description": "<<<<<<< HEAD # 3PL Management System ======= # 3pl-management-system >>>>>>> 3f4461b4d7419664dc1edf7cb419bb626c1cdea1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UziAkh/3pl-management-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UziAkh/3pl-management-system/issues"
+  },
+  "homepage": "https://github.com/UziAkh/3pl-management-system#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
