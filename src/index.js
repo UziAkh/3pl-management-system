@@ -9,6 +9,8 @@ dotenv.config();
 const clientRoutes = require('./routes/clientRoutes');
 const productRoutes = require('./routes/productRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const upcRoutes = require('./routes/upcRoutes');
+const fixRoutes = require('./routes/fixRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -40,6 +42,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/upc', upcRoutes);
+app.use('/api/fix', fixRoutes);
 
 // Start server
 app.listen(PORT, () => {

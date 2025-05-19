@@ -43,6 +43,11 @@
             <span class="nav-icon">🔄</span>
             Transactions
           </a>
+
+          <a href="#" class="nav-link" data-tab="receiving">
+            <span class="nav-icon">📱</span>
+            Receiving
+          </a>
         </div>
         
         <div class="nav-section">
@@ -363,6 +368,103 @@
             </div>
           </div>
         </div>
+
+        <!-- Receiving Tab -->
+        <div class="tab-content" id="receiving-tab">
+          <div class="section-header">
+            <h2 class="section-title">Daily Receiving</h2>
+            <button class="btn btn-secondary" id="viewReceivingHistoryBtn">
+              <span class="btn-icon">📋</span>
+              View History
+            </button>
+          </div>
+
+          <!-- Receiving Session Card -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h3 class="card-title">Start Receiving Session</h3>
+            </div>
+            
+            <div class="card-content">
+              <div id="receivingSelection">
+                <div class="form-group">
+                  <label for="receivingClient">Select Client</label>
+                  <select id="receivingClient" required>
+                    <option value="">Choose a client to receive for...</option>
+                    <!-- Will be populated dynamically -->
+                  </select>
+                </div>
+                
+                <div class="form-actions">
+                  <button class="btn btn-primary" id="startReceivingBtn" disabled>
+                    <span class="btn-icon">▶️</span>
+                    Start Receiving
+                  </button>
+                </div>
+              </div>
+
+              <!-- Receiving Session Active -->
+              <div id="receivingSession" style="display: none;">
+                <div class="receiving-status">
+                  <div class="status-info">
+                    <span class="status-label">Currently receiving for:</span>
+                    <span class="status-value" id="currentClient">-</span>
+                  </div>
+                  <div class="status-info">
+                    <span class="status-label">Items scanned:</span>
+                    <span class="status-value" id="itemsScanned">0</span>
+                  </div>
+                </div>
+
+                <!-- Scanner Interface -->
+                <div class="scanner-section">
+                  <div class="form-group">
+                    <label for="upcInput">Scan UPC or Enter Manually</label>
+                    <input type="text" id="upcInput" placeholder="Scan barcode or type UPC...">
+                  </div>
+                  
+                  <div class="form-actions">
+                    <button class="btn btn-primary" id="scanBtn">
+                      <span class="btn-icon">📱</span>
+                      Process UPC
+                    </button>
+                    <button class="btn btn-secondary" id="switchClientBtn">
+                      <span class="btn-icon">🔄</span>
+                      Switch Client
+                    </button>
+                    <button class="btn btn-danger" id="finishReceivingBtn">
+                      <span class="btn-icon">✅</span>
+                      Finish Session
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Current Session Items -->
+                <div class="session-items">
+                  <h4>Items in Current Session</h4>
+                  <div id="sessionItemsList">
+                    <p class="empty-message">No items scanned yet...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Receiving Sessions -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Receiving Sessions</h3>
+              <button class="btn btn-primary" id="loadReceivingHistoryBtn">
+                <span class="btn-icon">↻</span>
+                Refresh
+              </button>
+            </div>
+            
+            <div id="receivingHistoryList" class="card-content">
+              <p class="loading-message">Click refresh to load recent sessions...</p>
+            </div>
+          </div>
+        </div>
         
         <!-- API Health Tab -->
         <div class="tab-content" id="health-tab">
@@ -447,5 +549,6 @@
 <script src="/js/products.js"></script>
 <script src="/js/transactions.js"></script>
 <script src="/js/health.js"></script>
+<script src="/js/receiving.js"></script>
 </body>
 </html>
