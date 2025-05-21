@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>3PL Admin Portal</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .login { max-width: 300px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; }
+    .admin { display: none; }
+    input, button { padding: 10px; margin: 5px; }
+    button { background: #007cba; color: white; border: none; cursor: pointer; }
+    .box { border: 1px solid #ddd; margin: 10px 0; padding: 15px; }
+    .error { color: red; }
+    .success { color: green; }
+    canvas { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <!-- Login -->
+  <div id="loginDiv" class="login">
+    <h2>Admin Login</h2>
+    <input type="text" id="username" placeholder="Username" value="admin"><br>
+    <input type="password" id="password" placeholder="Password" value="admin123"><br>
+    <button onclick="login()">Login</button>
+    <div id="loginError" class="error"></div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="adminDiv" class="admin">
+    <h1>Box Management</h1>
+    <button onclick="logout()" style="float: right;">Logout</button>
+    
+    <div id="message"></div>
+
+    <!-- Add Box Form -->
+    <h3>Add New Box</h3>
+    <form onsubmit="addBox(event)">
+      <input type="text" id="boxName" placeholder="Box Name" required><br>
+      <input type="number" id="boxPrice" placeholder="Price" step="0.01" required><br>
+      <input type="text" id="boxDimensions" placeholder="Dimensions (optional)"><br>
+      <input type="text" id="boxDescription" placeholder="Description (optional)"><br>
+      <button type="submit">Add Box</button>
+    </form>
+
+    <!-- Box List -->
+    <h3>Existing Boxes</h3>
+    <div id="boxList">Loading...</div>
+  </div>
+
+  <script>
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      if (username === 'admin' && password === 'admin123') {
+        document.getElementById('loginDiv').style.display = 'none';
+        document.getElementById('adminDiv').style.display = 'block';
+        loadBoxes();
+      } else {
+        document.getElementById('loginError').textContent = 'Invalid credentials';
+      }
+    }
+
+    function logout() {
+      document.getElementById('loginDiv').style.display = 'block';
+      document.getElementById('adminDiv').style.display = 'none';
+      document.getElementById('username').value = 'admin';
+      document.getElementById('password').value = 'admin123';
+    }
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerHTML = '<div class="' + type + '">' + text + '</div>';
+      setTimeout(() => messageDiv.innerHTML = '', 3000);
+    }
+
+    function generateBarcode() {
+      return 'BOX' + Date.now().toString().slice(-8);
+    }
+
+    async function loadBoxes() {
+      try {
+        const response = await fetch('/api/boxes');
+        const boxes = await response.json();
+        displayBoxes(boxes);
+      } catch (error) {
+        showMessage('Error loading boxes: ' + error.message, 'error');
+        document.getElementById('boxList').innerHTML = 'Error loading boxes';
+      }
+    }
+
+    function displayBoxes(boxes) {
+      const boxListDiv = document.getElementById('boxList');
+      
+      if (boxes.length === 0) {
+        boxListDiv.innerHTML = 'No boxes found';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < boxes.length; i++) {
+        const box = boxes[i];
+        html += '<div class="box">';
+        html += '<h4>' + box.name + ' - $' + box.price + '</h4>';
+        html += '<p>Barcode: ' + box.barcode + '</p>';
+        html += '<p>Dimensions: ' + (box.dimensions || 'Not specified') + '</p>';
+        html += '<p>Description: ' + (box.description || 'None') + '</p>';
+        html += '<canvas id="canvas' + i + '"></canvas><br>';
+        html += '<button onclick="editBox(\'' + box.id + '\')">Edit</button> ';
+        html += '<button onclick="deleteBox(\'' + box.id + '\')">Delete</button> ';
+        html += '<button onclick="printBox(\'' + box.id + '\')">Print</button>';
+        html += '</div>';
+      }
+      boxListDiv.innerHTML = html;
+
+      // Generate barcodes after HTML is added
+      for (let i = 0; i < boxes.length; i++) {
+        generateBarcodeCanvas('canvas' + i, boxes[i].barcode);
+      }
+    }
+
+    function generateBarcodeCanvas(canvasId, barcode) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
+      script.onload = function() {
+        JsBarcode('#' + canvasId, barcode, {
+          format: "CODE128",
+          width: 2,
+          height: 100,
+          displayValue: true
+        });
+      };
+      
+      if (!window.JsBarcode) {
+        document.head.appendChild(script);
+      } else {
+        JsBarcode('#' + canvasId, barcode, {
+          format: "CODE128", 
+          width: 2,
+          height: 100,
+          displayValue: true
+        });
+      }
+    }
+
+    async function addBox(event) {
+      event.preventDefault();
+      
+      const newBox = {
+        name: document.getElementById('boxName').value,
+        price: parseFloat(document.getElementById('boxPrice').value),
+        dimensions: document.getElementById('boxDimensions').value,
+        description: document.getElementById('boxDescription').value,
+        barcode: generateBarcode()
+      };
+
+      try {
+        const response = await fetch('/api/boxes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newBox)
+        });
+
+        if (response.ok) {
+          showMessage('Box added successfully!', 'success');
+          document.querySelector('form').reset();
+          loadBoxes();
+        } else {
+          const error = await response.json();
+          showMessage('Error: ' + error.message, 'error');
+        }
+      } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+      }
+    }
+
+    function editBox(id) {
+      const newName = prompt('Enter new box name:');
+      if (!newName) return;
+
+      const newPrice = prompt('Enter new price:');
+      if (!newPrice) return;
+
+      fetch('/api/boxes/' + id, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: newName,
+          price: parseFloat(newPrice)
+        })
+      })
+      .then(response => response.json())
+      .then(() => {
+        showMessage('Box updated!', 'success');
+        loadBoxes();
+      })
+      .catch(error => {
+        showMessage('Error: ' + error.message, 'error');
+      });
+    }
+
+    function deleteBox(id) {
+      if (!confirm('Delete this box?')) return;
+
+      fetch('/api/boxes/' + id, {
+        method: 'DELETE'
+      })
+      .then(() => {
+        showMessage('Box deleted!', 'success');
+        loadBoxes();
+      })
+      .catch(error => {
+        showMessage('Error: ' + error.message, 'error');
+      });
+    }
+
+    function printBox(id) {
+      alert('Print feature - Box ID: ' + id);
+    }
+  </script>
+</body>
+</html>

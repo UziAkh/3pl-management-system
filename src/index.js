@@ -11,6 +11,7 @@ const productRoutes = require('./routes/productRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const upcRoutes = require('./routes/upcRoutes');
 const fixRoutes = require('./routes/fixRoutes');
+const boxRoutes = require('./routes/boxRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +45,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/upc', upcRoutes);
 app.use('/api/fix', fixRoutes);
+app.use('/api/boxes', boxRoutes);
 
 // Start server
 app.listen(PORT, () => {

@@ -1,7 +1,7 @@
 {
   "name": "3pl-management-system",
   "version": "1.0.0",
-  "description": "<<<<<<< HEAD # 3PL Management System ======= # 3pl-management-system >>>>>>> 3f4461b4d7419664dc1edf7cb419bb626c1cdea1",
+  "description": "A warehouse inventory management system for third-party logistics (3PL) providers",
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",

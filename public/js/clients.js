@@ -40,17 +40,17 @@ function initializeClientSection() {
       });
       
       if (response.ok) {
-        window.app.showNotification('Client added successfully', 'success');
+        showNotification('Client added successfully!', 'success');
         document.getElementById('addClientForm').reset();
         addClientCard.style.display = 'none';
         loadClients();
         loadDashboardStats();
       } else {
         const error = await response.json();
-        window.app.showNotification(`Error: ${error.message}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
       }
     } catch (error) {
-      window.app.showNotification(`Error: ${error.message}`, 'error');
+      showNotification(`Error: ${error.message}`, 'error');
     }
   });
   
@@ -178,10 +178,10 @@ async function editClient(id) {
       throw new Error(errorData.message || 'Failed to update client');
     }
     
-    window.app.showNotification('Client updated successfully', 'success');
+    showNotification('Client updated successfully!', 'success');
     loadClients();
   } catch (error) {
-    window.app.showNotification(`Error: ${error.message}`, 'error');
+    showNotification(`Error: ${error.message}`, 'error');
   }
 }
 
@@ -194,15 +194,14 @@ async function deleteClient(id) {
     });
     
     if (response.ok) {
-      window.app.showNotification('Client deleted successfully', 'success');
+      showNotification('Client deleted successfully!', 'success');
       loadClients();
-      // Removed duplicate and incomplete deleteClient function
       loadDashboardStats(); // Refresh dashboard after deletion
     } else {
       const error = await response.json();
-      window.app.showNotification(`Error: ${error.message}`, 'error');
+      showNotification(`Error: ${error.message}`, 'error');
     }
   } catch (error) {
-    window.app.showNotification(`Error: ${error.message}`, 'error');
+    showNotification(`Error: ${error.message}`, 'error');
   }
 }

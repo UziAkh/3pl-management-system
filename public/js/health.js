@@ -9,8 +9,10 @@ function initializeHealthSection() {
       const data = await response.json();
       
       resultElement.textContent = JSON.stringify(data, null, 2);
+      showNotification('API health check completed successfully!', 'success');
     } catch (error) {
       resultElement.textContent = `Error: ${error.message}`;
+      showNotification(`API health check failed: ${error.message}`, 'error');
     }
   });
 }

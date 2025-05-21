@@ -13,6 +13,12 @@
   <link rel="stylesheet" href="/css/transactions.css">
 </head>
 <body>
+  <!-- Notification div (outside container) -->
+  <div id="notification" class="notification hidden">
+    <span id="notification-message"></span>
+    <button id="notification-close" class="notification-close">&times;</button>
+  </div>
+  
   <div class="container">
     <!-- Sidebar -->
     <div class="sidebar">
@@ -292,82 +298,329 @@
           </div>
         </div>
         
-        <!-- Transactions Tab -->
-        <div class="tab-content" id="transactions-tab">
-          <div class="section-header">
-            <h2 class="section-title">Inventory Transactions</h2>
-            <div>
-              <select id="transactionFilter" class="btn">
-                <option value="">All Transactions</option>
-                <option value="inbound">Inbound Only</option>
-                <option value="outbound">Outbound Only</option>
-              </select>
-              <button class="btn btn-primary" id="loadTransactionsBtn">
-                <span class="btn-icon">↻</span>
-                Refresh
-              </button>
-            </div>
-          </div>
+        <!-- Enhanced Transactions Tab - Outbound Fulfillment -->
+<div class="tab-content" id="transactions-tab">
+  <div class="section-header">
+    <h2 class="section-title">Outbound Fulfillment</h2>
+    <div>
+      <button class="btn btn-primary" id="loadTransactionsBtn">
+        <span class="btn-icon">↻</span>
+        Refresh Shipments
+      </button>
+    </div>
+  </div>
 
-          <div class="card mb-4">
-            <div class="card-header">
-              <h3 class="card-title">Create New Transaction</h3>
-            </div>
-            
-            <div class="card-content">
-              <form id="createTransactionForm">
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="transactionType">Transaction Type</label>
-                    <select id="transactionType">
-                      <option value="inbound">Inbound (Receive)</option>
-                      <option value="outbound">Outbound (Ship)</option>
-                    </select>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="transactionProduct">Product</label>
-                    <select id="transactionProduct" required>
-                      <option value="">Select a product</option>
-                      <!-- Will be populated dynamically -->
-                    </select>
-                  </div>
-                </div>
-                
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="transactionQuantity">Quantity</label>
-                    <input type="number" id="transactionQuantity" min="1" value="1" required>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="transactionReference">Reference (Optional)</label>
-                    <input type="text" id="transactionReference" placeholder="PO number, order number, etc.">
-                  </div>
-                </div>
-                
-                <div class="form-group">
-                  <label for="transactionNotes">Notes (Optional)</label>
-                  <textarea id="transactionNotes" rows="3" placeholder="Additional information about this transaction"></textarea>
-                </div>
-                
-                <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">Create Transaction</button>
-                </div>
-              </form>
-            </div>
-          </div>
+  <!-- Shipping Workflow -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3 class="card-title">Create New Shipment</h3>
+    </div>
+    
+    <div class="card-content">
+      <!-- Step 1: Client Selection -->
+      <div class="shipping-step">
+        <h4>Step 1: Select Client</h4>
+        <div class="form-group">
+          <label for="shippingClientSelect">Client</label>
+          <select id="shippingClientSelect" class="form-control">
+            <option value="">Select a client to ship for...</option>
+          </select>
+        </div>
+      </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Transaction History</h3>
-            </div>
-            
-            <div id="transactionsList" class="card-content">
-              <p class="loading-message">Loading transactions...</p>
-            </div>
+      <!-- Step 2: UPC Scanning -->
+      <div id="upcScanSection" class="shipping-step" style="display: none;">
+        <h4>Step 2: Scan Product UPCs</h4>
+        <p class="step-instruction">Scan each product UPC. Scan the same UPC multiple times to increase quantity.</p>
+        <div class="scanner-interface">
+          <div class="form-group">
+            <label for="upcInput">Product UPC</label>
+            <input type="text" id="upcInput" placeholder="Scan or enter UPC..." class="form-control">
+          </div>
+          <button id="processUpcBtn" class="btn btn-primary">
+            <span class="btn-icon">📱</span>
+            Process UPC
+          </button>
+        </div>
+        
+        <!-- Current Shipment Items -->
+        <div class="shipment-items">
+          <h5>Items in Shipment:</h5>
+          <div id="shipmentItemsList">
+            <p>No items scanned yet...</p>
           </div>
         </div>
+      </div>
+
+      <!-- Step 3: Box Scanning -->
+      <div id="boxScanSection" class="shipping-step" style="display: none;">
+        <h4>Step 3: Scan Box Barcode</h4>
+        <p class="step-instruction">Scan the barcode of the box you're using for this shipment.</p>
+        <div class="scanner-interface">
+          <div class="form-group">
+            <label for="boxBarcodeInput">Box Barcode</label>
+            <input type="text" id="boxBarcodeInput" placeholder="Scan box barcode..." class="form-control">
+          </div>
+          <button id="processBoxBtn" class="btn btn-primary">
+            <span class="btn-icon">📦</span>
+            Process Box
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Shipment Summary & Complete -->
+      <div id="shipmentSummary" class="shipping-step" style="display: none;">
+        <h4>Step 4: Complete Shipment</h4>
+        <div class="shipment-summary">
+          <div class="pricing-details">
+            <h5>Pricing Breakdown:</h5>
+            <div id="pricingDetails">
+              <p>Scan box barcode to see pricing...</p>
+            </div>
+          </div>
+          
+          <div class="shipment-actions">
+            <button id="completeShipmentBtn" class="btn btn-success">
+              <span class="btn-icon">✅</span>
+              Complete Shipment
+            </button>
+            <button id="cancelShipmentBtn" class="btn btn-secondary">
+              <span class="btn-icon">❌</span>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shipment History -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Shipment History</h3>
+      <div>
+        <select id="transactionFilter" class="btn">
+          <option value="">All Shipments</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+        </select>
+      </div>
+    </div>
+    
+    <div id="transactionsList" class="card-content">
+      <p class="loading-message">Loading shipments...</p>
+    </div>
+  </div>
+</div>
+
+<style>
+          /* Enhanced Transactions Tab Styles */
+          .shipping-step {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9fa;
+          }
+
+          .shipping-step h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 18px;
+          }
+
+          .step-instruction {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+            font-style: italic;
+          }
+
+          .scanner-interface {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 20px;
+          }
+
+          .scanner-interface .form-group {
+            flex: 1;
+            margin-bottom: 0;
+          }
+
+          .shipment-items {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+          }
+
+          .shipment-items h5 {
+            margin-bottom: 10px;
+            color: #333;
+          }
+
+          .shipment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+          }
+
+          .item-name {
+            font-weight: 500;
+            color: #333;
+          }
+
+          .item-quantity {
+            color: #666;
+            font-size: 14px;
+          }
+
+          .shipment-item button {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+          }
+
+          .shipment-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+          }
+
+          .pricing-details {
+            margin-bottom: 20px;
+          }
+
+          .pricing-details h5 {
+            margin-bottom: 15px;
+            color: #333;
+          }
+
+          .pricing-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          .pricing-row.total {
+            border-top: 2px solid #333;
+            border-bottom: none;
+            margin-top: 10px;
+            padding-top: 15px;
+            font-size: 18px;
+          }
+
+          .shipment-actions {
+            display: flex;
+            gap: 15px;
+          }
+
+          .btn-success {
+            background: #28a745;
+            color: white;
+          }
+
+          .btn-success:hover {
+            background: #218838;
+          }
+
+          /* Form control styling */
+          .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+          }
+
+          .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+          }
+
+          /* Transaction cards styling */
+          .transaction-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: white;
+          }
+
+          .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          }
+
+          .transaction-type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+
+          .transaction-outbound {
+            background-color: #fee2e2;
+            color: #b91c1c;
+          }
+
+          .transaction-timestamp {
+            color: #666;
+            font-size: 14px;
+            margin-left: 10px;
+          }
+
+          .transaction-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+          }
+
+          .quantity-change {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+          }
+
+          .quantity-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+          }
+
+          .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+          }
+
+          .info-value {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin: 0;
+          }
+          </style>
 
         <!-- Receiving Tab -->
         <div class="tab-content" id="receiving-tab">

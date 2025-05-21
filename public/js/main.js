@@ -69,3 +69,35 @@ window.app = {
     document.querySelector(`.nav-link[data-tab="${tab}"]`).click();
   }
 };
+
+// Notification functions
+function showNotification(message, type = 'success') {
+  const notification = document.getElementById('notification');
+  const messageElement = document.getElementById('notification-message');
+  const closeButton = document.getElementById('notification-close');
+  
+  // Set the message
+  messageElement.textContent = message;
+  
+  // Remove existing type classes and add the new one
+  notification.classList.remove('success', 'error', 'hidden');
+  notification.classList.add(type);
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    hideNotification();
+  }, 5000);
+}
+
+function hideNotification() {
+  const notification = document.getElementById('notification');
+  notification.classList.add('hidden');
+}
+
+// Add click event to close button when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  const closeButton = document.getElementById('notification-close');
+  if (closeButton) {
+    closeButton.addEventListener('click', hideNotification);
+  }
+});
