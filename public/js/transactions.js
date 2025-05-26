@@ -554,7 +554,7 @@
     function initializeElements() {
         elements.clientSelect = document.getElementById('shippingClientSelect');
         elements.upcScanSection = document.getElementById('upcScanSection');
-        elements.upcInput = document.getElementById('upcInput');
+        elements.upcInput = document.getElementById('shippingUpcInput');
         elements.processUpcBtn = document.getElementById('processUpcBtn');
         elements.shipmentItemsList = document.getElementById('shipmentItemsList');
         elements.boxScanSection = document.getElementById('boxScanSection');

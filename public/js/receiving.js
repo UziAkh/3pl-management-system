@@ -1,648 +1,408 @@
-// Daily Receiving functionality
-(function() {
-    'use strict';
+// Fresh start - Simple Receiving System
+console.log('🆕 Loading fresh receiving system...');
 
-    // State management
-    let receivingSession = {
-        active: false,
-        clientId: null,
-        clientName: '',
-        scannedItems: []
-    };
+// Simple product database for UPC lookups
+const UPC_DATABASE = {
+  '016000476738': 'General Mills Cheerios',
+  '016571960230': 'Skippy Peanut Butter', 
+  '038000138416': 'Kelloggs Rice Krispies',
+  '011110806765': 'Coca-Cola Classic',
+  '012000001031': 'Sprite 12oz Can',
+  '028400064057': 'Doritos Nacho Cheese'
+};
+
+// Current receiving session
+let receivingSession = {
+  isActive: false,
+  clientId: null,
+  clientName: null,
+  items: []
+};
+
+console.log('📦 Available UPCs:', Object.keys(UPC_DATABASE));
+
+// Load clients into dropdown
+async function loadClients() {
+  try {
+    console.log('📋 Loading clients...');
+    const response = await fetch('/api/clients');
+    const clients = await response.json();
     
-    let allClients = [];
-    let allProducts = [];
-
-    // For development - helper to inspect the page structure
-    function findAllInputs() {
-        const inputs = document.querySelectorAll('input');
-        console.log('All inputs on page:', inputs.length);
-        inputs.forEach((input, i) => {
-            console.log(`Input #${i}:`, {
-                id: input.id,
-                value: input.value,
-                type: input.type,
-                placeholder: input.placeholder
-            });
-        });
-    }
-
-    // Utility functions
-    function showNotification(message, type = 'error') {
-        console.log(`Notification: ${message} (${type})`);
-        // Create notification if not exists
-        let notification = document.getElementById('notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.id = 'notification';
-            notification.className = 'notification hidden';
-            
-            const messageEl = document.createElement('span');
-            messageEl.id = 'notification-message';
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.id = 'notification-close';
-            closeBtn.className = 'notification-close';
-            closeBtn.innerHTML = '&times;';
-            closeBtn.addEventListener('click', () => {
-                notification.classList.add('hidden');
-            });
-            
-            notification.appendChild(messageEl);
-            notification.appendChild(closeBtn);
-            document.body.appendChild(notification);
-        }
-        
-        const messageEl = document.getElementById('notification-message');
-        if (messageEl) {
-            messageEl.textContent = message;
-        }
-        
-        notification.className = `notification ${type}`;
-        notification.classList.remove('hidden');
-        
-        if (type === 'success') {
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 3000);
-        }
-    }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Load clients for dropdown
-    async function loadClients() {
-        try {
-            console.log('Loading clients...');
-            const response = await fetch('/api/clients');
-            if (!response.ok) throw new Error('Failed to fetch clients');
-            
-            allClients = await response.json();
-            console.log(`Loaded ${allClients.length} clients`);
-            
-            populateClientDropdown();
-        } catch (error) {
-            console.error('Error loading clients:', error);
-            showNotification('Failed to load clients: ' + error.message);
-        }
-    }
-
-    // Populate the client dropdown
-    function populateClientDropdown() {
-        const receivingClient = document.getElementById('receivingClient');
-        if (!receivingClient) {
-            console.error('No element with ID "receivingClient" found');
-            return;
-        }
-        
-        // Clear existing options except the first one
-        receivingClient.innerHTML = '<option value="">Choose a client to receive for...</option>';
-        
-        // Add active clients
-        const activeClients = allClients.filter(client => client.active);
-        
-        if (activeClients.length === 0) {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = 'No active clients found';
-            option.disabled = true;
-            receivingClient.appendChild(option);
-            return;
-        }
-        
-        activeClients.forEach(client => {
-            const option = document.createElement('option');
-            option.value = client.id;
-            option.textContent = client.name;
-            receivingClient.appendChild(option);
-        });
-        
-        console.log(`Populated dropdown with ${activeClients.length} active clients`);
-    }
-
-    // Load products for UPC lookup
-    async function loadProducts() {
-        try {
-            console.log('Loading products...');
-            const response = await fetch('/api/products');
-            if (!response.ok) throw new Error('Failed to fetch products');
-            
-            allProducts = await response.json();
-            console.log(`Loaded ${allProducts.length} products`);
-        } catch (error) {
-            console.error('Error loading products:', error);
-            showNotification('Failed to load products: ' + error.message);
-        }
-    }
-
-    // Handle client selection
-    function handleClientSelection() {
-        const startReceivingBtn = document.getElementById('startReceivingBtn');
-        const receivingClient = document.getElementById('receivingClient');
-        
-        if (!startReceivingBtn || !receivingClient) {
-            console.error('Client selection elements not found:', { 
-                startReceivingBtn: !!startReceivingBtn, 
-                receivingClient: !!receivingClient 
-            });
-            return;
-        }
-        
-        const selectedClientId = receivingClient.value;
-        console.log('Client selected:', selectedClientId);
-        
-        startReceivingBtn.disabled = !selectedClientId;
-    }
-
-    // Start receiving session
-    function startReceivingSession() {
-        const receivingClient = document.getElementById('receivingClient');
-        if (!receivingClient) {
-            console.error('receivingClient element not found');
-            return;
-        }
-        
-        const selectedClientId = receivingClient.value;
-        if (!selectedClientId) {
-            showNotification('Please select a client');
-            return;
-        }
-        
-        const selectedClient = allClients.find(client => client.id === selectedClientId);
-        if (!selectedClient) {
-            showNotification('Invalid client selection');
-            return;
-        }
-        
-        console.log('Starting receiving session for client:', selectedClient.name);
-        
-        // Set up session
-        receivingSession = {
-            active: true,
-            clientId: selectedClientId,
-            clientName: selectedClient.name,
-            scannedItems: []
-        };
-        
-        // Update UI - check for all elements
-        const receivingSelection = document.getElementById('receivingSelection');
-        const receivingSessionUI = document.getElementById('receivingSession');
-        const currentClient = document.getElementById('currentClient');
-        const itemsScanned = document.getElementById('itemsScanned');
-        
-        if (receivingSelection) {
-            receivingSelection.style.display = 'none';
-        } else {
-            console.error('receivingSelection element not found');
-        }
-        
-        if (receivingSessionUI) {
-            receivingSessionUI.style.display = 'block';
-        } else {
-            console.error('receivingSession element not found');
-        }
-        
-        if (currentClient) {
-            currentClient.textContent = selectedClient.name;
-        } else {
-            console.error('currentClient element not found');
-        }
-        
-        if (itemsScanned) {
-            itemsScanned.textContent = '0';
-        } else {
-            console.error('itemsScanned element not found');
-        }
-        
-        // Update session items list
-        updateSessionItemsList();
-        
-        console.log(`Started receiving session for: "${selectedClient.name}"`);
-    }
-
-    // Process UPC scan - uses a hard-coded UPC for now
-    // Process UPC scan - minimal version that should work
-// Process UPC scan - ultra simple hardcoded approach
-async function processUPC() {
-    console.log('Process UPC called');
-    
-    // Use the exact UPC from the screen - replace this with what you see
-    const upcValue = "016571960230";
-    console.log('Using UPC value:', upcValue);
-    
-    if (!receivingSession.active) {
-        showNotification('No active receiving session');
-        return;
+    const select = document.getElementById('receivingClient');
+    if (!select) {
+      console.error('❌ Client select element not found');
+      return;
     }
     
-    try {
-        // First, look up by UPC in local cache
-        console.log('Searching for product with UPC:', upcValue);
-        let product = allProducts.find(p => p.upc === upcValue);
-        
-        // If not found, try to fetch from API
-        if (!product) {
-            console.log('Product not found in cache, fetching from API...');
-            try {
-                const response = await fetch(`/api/products/upc/${upcValue}`);
-                if (response.ok) {
-                    product = await response.json();
-                    console.log('Product found via API:', product);
-                } else {
-                    console.log('API returned no product');
-                }
-            } catch (err) {
-                console.error('API fetch error:', err);
-            }
-        } else {
-            console.log('Product found in cache:', product);
-        }
-        
-        if (!product) {
-            showNotification(`Product with UPC ${upcValue} not found`, 'error');
-            return;
-        }
-        
-        // Allow products to be processed regardless of client assignment
-        console.log('Processing product regardless of client assignment');
-        
-        // Add to session
-        addItemToSession(product);
-        
-    } catch (error) {
-        console.error('Error processing UPC:', error);
-        showNotification('Error processing UPC: ' + error.message);
-    }
+    select.innerHTML = '<option value="">Choose client...</option>';
+    
+    clients.filter(c => c.active).forEach(client => {
+      const option = document.createElement('option');
+      option.value = client.id;
+      option.textContent = client.name;
+      select.appendChild(option);
+    });
+    
+    console.log('✅ Loaded', clients.length, 'clients');
+  } catch (error) {
+    console.error('❌ Error loading clients:', error);
+  }
 }
 
-    // Add item to session
-    function addItemToSession(product) {
-        console.log('Adding product to session:', product);
-        // Check if item already exists in session
-        const existingItem = receivingSession.scannedItems.find(item => item.product.id === product.id);
-        
-        if (existingItem) {
-            existingItem.quantity += 1;
-            showNotification(`Added ${product.name} - Quantity: ${existingItem.quantity}`, 'success');
-        } else {
-            receivingSession.scannedItems.push({
-                product: product,
-                quantity: 1,
-                timestamp: new Date()
-            });
-            showNotification(`Added ${product.name} - Quantity: 1`, 'success');
-        }
-        
-        // Update UI
-        const itemsScanned = document.getElementById('itemsScanned');
-        if (itemsScanned) {
-            const totalItems = receivingSession.scannedItems.reduce((sum, item) => sum + item.quantity, 0);
-            itemsScanned.textContent = totalItems;
-        } else {
-            console.error('itemsScanned element not found');
-        }
-        
-        updateSessionItemsList();
-    }
+// Start receiving session
+function startSession() {
+  const select = document.getElementById('receivingClient');
+  if (!select || !select.value) {
+    alert('Please select a client first');
+    return;
+  }
+  
+  const clientId = select.value;
+  const clientName = select.options[select.selectedIndex].text;
+  
+  receivingSession = {
+    isActive: true,
+    clientId: clientId,
+    clientName: clientName,
+    items: []
+  };
 
-    // Update session items list display
-    function updateSessionItemsList() {
-        const sessionItemsList = document.getElementById('sessionItemsList');
-        if (!sessionItemsList) {
-            console.error('sessionItemsList element not found');
-            return;
-        }
-        
-        if (receivingSession.scannedItems.length === 0) {
-            sessionItemsList.innerHTML = '<p class="empty-message">No items scanned yet...</p>';
-            return;
-        }
-        
-        const itemsHtml = receivingSession.scannedItems.map(item => `
-            <div class="session-item">
-                <div class="item-details">
-                    <span class="item-name">${escapeHtml(item.product.name)}</span>
-                    <span class="item-identifier">SKU: ${escapeHtml(item.product.sku)} | UPC: ${escapeHtml(item.product.upc || 'N/A')}</span>
-                </div>
-                <div class="item-quantity">
-                    <span class="quantity-value">${item.quantity}</span>
-                </div>
-            </div>
-        `).join('');
-        
-        sessionItemsList.innerHTML = itemsHtml;
-        console.log('Updated session items list with', receivingSession.scannedItems.length, 'items');
-    }
+  // Clear the items display immediately
+  updateDisplay();
+  
+  // Update UI
+  document.getElementById('receivingSelection').style.display = 'none';
+  document.getElementById('receivingSession').style.display = 'block';
+  document.getElementById('currentClient').textContent = clientName;
+  document.getElementById('itemsScanned').textContent = '0';
+  
+  console.log('🚀 Started session for:', clientName);
+  
+  // Focus UPC input
+  const upcInput = document.getElementById('upcInput');
+  if (upcInput) {
+    upcInput.focus();
+  }
+}
 
-    // Switch client / cancel session
-    function switchClient() {
-        if (!confirm('Are you sure you want to switch clients? This will end the current receiving session.')) {
-            return;
-        }
-        
-        // End current session
-        endReceivingSession();
-        
-        // Reset UI for client selection
-        const receivingSelection = document.getElementById('receivingSelection');
-        const receivingSessionUI = document.getElementById('receivingSession');
-        const receivingClient = document.getElementById('receivingClient');
-        
-        if (receivingSelection) receivingSelection.style.display = 'block';
-        if (receivingSessionUI) receivingSessionUI.style.display = 'none';
-        if (receivingClient) receivingClient.value = '';
-        
-        handleClientSelection();
-        console.log('Switched client / cancelled session');
-    }
-
-    // Finish receiving session and create transactions
-    async function finishReceivingSession() {
-        if (receivingSession.scannedItems.length === 0) {
-            if (!confirm('No items have been scanned. Do you still want to end the session?')) {
-                return;
-            }
-        } else {
-            if (!confirm(`Are you sure you want to finish this receiving session with ${receivingSession.scannedItems.length} item types?`)) {
-                return;
-            }
-        }
-        
-        try {
-            console.log('Finishing receiving session...');
-            // Create inbound transactions for each item
-            for (const item of receivingSession.scannedItems) {
-                const transactionData = {
-                    productId: item.product.id,
-                    quantity: item.quantity,
-                    reference: `RECEIVING-${Date.now()}`,
-                    notes: `Receiving session for ${receivingSession.clientName}`
-                };
-                
-                console.log('Creating transaction:', transactionData);
-                
-                const response = await fetch('/api/transactions/inbound', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(transactionData)
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to create transaction');
-                }
-                
-                const result = await response.json();
-                console.log('Transaction created:', result);
-            }
-            
-            showNotification(`Receiving session completed with ${receivingSession.scannedItems.length} item types`, 'success');
-            
-            // End session
-            endReceivingSession();
-            
-            // Reset UI
-            const receivingSelection = document.getElementById('receivingSelection');
-            const receivingSessionUI = document.getElementById('receivingSession');
-            const receivingClient = document.getElementById('receivingClient');
-            
-            if (receivingSelection) receivingSelection.style.display = 'block';
-            if (receivingSessionUI) receivingSessionUI.style.display = 'none';
-            if (receivingClient) receivingClient.value = '';
-            
-            handleClientSelection();
-            
-            // Refresh receiving history
-            loadReceivingHistory();
-            
-        } catch (error) {
-            console.error('Error finishing receiving session:', error);
-            showNotification('Error finishing session: ' + error.message);
-        }
-    }
-
-    // End receiving session (without saving)
-    function endReceivingSession() {
-        receivingSession = {
-            active: false,
-            clientId: null,
-            clientName: '',
-            scannedItems: []
-        };
-        console.log('Ended receiving session');
-    }
-
-    // Load receiving history
-    async function loadReceivingHistory() {
-        const receivingHistoryList = document.getElementById('receivingHistoryList');
-        if (!receivingHistoryList) {
-            console.error('receivingHistoryList element not found');
-            return;
-        }
-        
-        try {
-            receivingHistoryList.innerHTML = '<p class="loading-message">Loading receiving history...</p>';
-            
-            // Get inbound transactions
-            const response = await fetch('/api/transactions?type=inbound');
-            if (!response.ok) throw new Error('Failed to fetch receiving history');
-            
-            const transactions = await response.json();
-            console.log(`Loaded ${transactions.length} inbound transactions`);
-            
-            if (transactions.length === 0) {
-                receivingHistoryList.innerHTML = '<p class="empty-message">No receiving sessions found.</p>';
-                return;
-            }
-            
-            // Group transactions by reference to show as sessions
-            const sessionMap = new Map();
-            
-            transactions.forEach(transaction => {
-                const reference = transaction.reference || 'Unknown';
-                const dateKey = new Date(transaction.created_at).toLocaleDateString();
-                const sessionKey = `${dateKey}-${reference}`;
-                
-                if (!sessionMap.has(sessionKey)) {
-                    sessionMap.set(sessionKey, {
-                        date: new Date(transaction.created_at),
-                        reference: reference,
-                        transactions: [],
-                        totalItems: 0
-                    });
-                }
-                
-                sessionMap.get(sessionKey).transactions.push(transaction);
-                sessionMap.get(sessionKey).totalItems += transaction.quantity;
-            });
-            
-            // Convert to array and sort by date (newest first)
-            const sessions = Array.from(sessionMap.values()).sort((a, b) => b.date - a.date);
-            
-            // Build HTML
-            const sessionsHtml = sessions.slice(0, 10).map(session => {
-                const date = session.date.toLocaleString();
-                
-                return `
-                    <div class="history-card">
-                        <div class="history-header">
-                            <span class="history-date">${date}</span>
-                            <span class="history-ref">Ref: ${escapeHtml(session.reference)}</span>
-                        </div>
-                        <div class="history-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Items</span>
-                                <span class="stat-value">${session.transactions.length}</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Quantity</span>
-                                <span class="stat-value">${session.totalItems}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            receivingHistoryList.innerHTML = sessionsHtml || '<p class="empty-message">No receiving sessions found.</p>';
-            
-        } catch (error) {
-            console.error('Error loading receiving history:', error);
-            receivingHistoryList.innerHTML = `<p class="error-message">Error loading receiving history: ${error.message}</p>`;
-        }
-    }
-
-    // Initialize event listeners
-    function initializeEventListeners() {
-        console.log('Setting up event listeners for receiving functionality...');
-        
-        // Client selection
-        const receivingClient = document.getElementById('receivingClient');
-        if (receivingClient) {
-            receivingClient.addEventListener('change', handleClientSelection);
-            console.log('Added change listener to receivingClient');
-        } else {
-            console.error('receivingClient element not found');
-        }
-        
-        // Start receiving session
-        const startReceivingBtn = document.getElementById('startReceivingBtn');
-        if (startReceivingBtn) {
-            startReceivingBtn.addEventListener('click', startReceivingSession);
-            console.log('Added click listener to startReceivingBtn');
-        } else {
-            console.error('startReceivingBtn element not found');
-        }
-        
-        // Process UPC button
-        const scanBtn = document.getElementById('scanBtn');
-        if (scanBtn) {
-            scanBtn.addEventListener('click', processUPC);
-            console.log('Added click listener to scanBtn');
-        } else {
-            // Try to find by text content
-            const buttons = document.querySelectorAll('button');
-            const processButton = Array.from(buttons).find(btn => 
-                btn.textContent.includes('Process UPC')
-            );
-            
-            if (processButton) {
-                processButton.addEventListener('click', processUPC);
-                console.log('Added click listener to Process UPC button (found by text)');
-            } else {
-                console.error('scanBtn element not found');
-            }
-        }
-        
-        // UPC input field enter key
-        const upcInput = document.getElementById('upcInput');
-        if (upcInput) {
-            upcInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    console.log('Enter key pressed in UPC input');
-                    e.preventDefault();
-                    processUPC();
-                }
-            });
-            console.log('Added keypress listener to upcInput');
-        } else {
-            console.error('upcInput element not found');
-        }
-        
-        // Switch client
-        const switchClientBtn = document.getElementById('switchClientBtn');
-        if (switchClientBtn) {
-            switchClientBtn.addEventListener('click', switchClient);
-            console.log('Added click listener to switchClientBtn');
-        } else {
-            console.error('switchClientBtn element not found');
-        }
-        
-        // Finish session
-        const finishReceivingBtn = document.getElementById('finishReceivingBtn');
-        if (finishReceivingBtn) {
-            finishReceivingBtn.addEventListener('click', finishReceivingSession);
-            console.log('Added click listener to finishReceivingBtn');
-        } else {
-            console.error('finishReceivingBtn element not found');
-        }
-        
-        // Load receiving history
-        const loadReceivingHistoryBtn = document.getElementById('loadReceivingHistoryBtn');
-        if (loadReceivingHistoryBtn) {
-            loadReceivingHistoryBtn.addEventListener('click', loadReceivingHistory);
-            console.log('Added click listener to loadReceivingHistoryBtn');
-        } else {
-            console.error('loadReceivingHistoryBtn element not found');
-        }
-        
-        // Notification close button
-        const notificationClose = document.getElementById('notification-close');
-        if (notificationClose) {
-            notificationClose.addEventListener('click', () => {
-                const notification = document.getElementById('notification');
-                if (notification) {
-                    notification.classList.add('hidden');
-                }
-            });
-        }
-
-        console.log('All event listeners set up');
-    }
-
-    // Initialize the receiving functionality
-    function initializeReceiving() {
-        console.log('Initializing receiving functionality...');
-        
-        // Add event listeners
-        initializeEventListeners();
-        
-        // Load data
-        loadClients();
-        loadProducts();
-        
-        // Disable start button initially
-        const startReceivingBtn = document.getElementById('startReceivingBtn');
-        if (startReceivingBtn) {
-            startReceivingBtn.disabled = true;
-        }
-        
-        console.log('Receiving initialization complete');
-    }
-
-    // Start initializing when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeReceiving);
-        console.log('Set up DOMContentLoaded listener for receiving initialization');
+// Look up product name by UPC using API (MOVED OUTSIDE)
+async function getProductName(upc) {
+  console.log('🔍 Looking up UPC via API:', upc);
+  
+  try {
+    const response = await fetch(`/api/upc/${upc}`); // ← This calls your UPC controller
+    const data = await response.json();
+    
+    if (data.found && data.title) {
+      console.log('✅ Found via API:', data.title);
+      return data.title;
     } else {
-        console.log('DOM already loaded, initializing receiving now');
-        initializeReceiving();
+      console.log('❌ Not found in API, using generic name');
+      return `Product UPC-${upc}`;
     }
+  } catch (error) {
+    console.error('❌ API lookup failed:', error);
+    return `Product UPC-${upc}`;
+  }
+}
 
-})();
+// Process a UPC scan
+async function processUPC() {
+  console.log('🎯 Process UPC clicked');
+  
+  if (!receivingSession.isActive) {
+    alert('No receiving session active. Please start a session first.');
+    return;
+  }
+  
+  // Get UPC from input
+  const upcInput = document.getElementById('upcInput');
+  let upc = '';
+  
+  if (upcInput && upcInput.value.trim()) {
+    upc = upcInput.value.trim();
+    console.log('📱 Got UPC from input:', upc);
+  } else {
+    console.log('❌ No UPC in input field');
+    alert('Please enter a UPC in the input field first');
+    return;
+  }
+  
+  try {
+    // Look up product name (FIXED - NOW ACTUALLY CALLING THE FUNCTION!)
+    const productName = await getProductName(upc);
+    console.log('🏷️ Product name:', productName);
+    
+    // Check if product exists for this client
+    const productsResponse = await fetch(`/api/products?clientId=${receivingSession.clientId}`);
+    const clientProducts = await productsResponse.json();
+    let existingProduct = clientProducts.find(p => p.upc === upc);
+    
+    // Create product if it doesn't exist
+    if (!existingProduct) {
+      console.log('➕ Creating new product...');
+      const newProduct = {
+        name: productName,
+        sku: `${receivingSession.clientId.substring(0, 6)}-${upc}`,
+        upc: upc,
+        clientId: receivingSession.clientId,
+        description: '',
+        quantity: 0
+      };
+      
+      const createResponse = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct)
+      });
+      
+      if (!createResponse.ok) {
+        throw new Error('Failed to create product');
+      }
+      
+      existingProduct = await createResponse.json();
+      console.log('✅ Created product:', existingProduct.name);
+    } else {
+      console.log('📦 Using existing product:', existingProduct.name);
+    }
+    
+    // Add to session
+    receivingSession.items.push({
+      productId: existingProduct.id,
+      name: existingProduct.name,
+      upc: upc,
+      quantity: 1
+    });
+    
+    // Create inbound transaction
+    const transactionResponse = await fetch('/api/transactions/inbound', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: existingProduct.id,
+        quantity: 1,
+        reference: `RCV-${Date.now()}`,
+        notes: `Scanned UPC: ${upc}`
+      })
+    });
+    
+    if (!transactionResponse.ok) {
+      throw new Error('Failed to create transaction');
+    }
+    
+    // Update UI
+    updateDisplay();
+    
+    // Clear input and focus
+    if (upcInput) {
+      upcInput.value = '';
+      upcInput.focus();
+    }
+    
+    // Show success
+    showSuccess(`Added: ${existingProduct.name}`);
+    
+  } catch (error) {
+    console.error('❌ Error processing UPC:', error);
+    alert('Error: ' + error.message);
+  }
+}
+
+// Update the display
+function updateDisplay() {
+  const itemCount = receivingSession.items.length;
+  
+  // Update counter
+  const counter = document.getElementById('itemsScanned');
+  if (counter) {
+    counter.textContent = itemCount;
+  }
+  
+  // Update items list
+  const list = document.getElementById('sessionItemsList');
+  if (!list) return;
+  
+  if (itemCount === 0) {
+    list.innerHTML = '<p>No items scanned yet...</p>';
+    return;
+  }
+  
+  // Group by product
+  const grouped = {};
+  receivingSession.items.forEach(item => {
+    if (grouped[item.productId]) {
+      grouped[item.productId].quantity += 1;
+    } else {
+      grouped[item.productId] = { ...item };
+    }
+  });
+  
+  // Build HTML
+  list.innerHTML = Object.values(grouped).map(item => `
+    <div style="background: #f5f5f5; padding: 12px; margin: 8px 0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <strong>${item.name}</strong><br>
+        <small style="color: #666;">UPC: ${item.upc}</small>
+      </div>
+      <div style="font-weight: bold; color: #059669;">+${item.quantity}</div>
+    </div>
+  `).join('');
+}
+
+// Show success message
+function showSuccess(message) {
+  const popup = document.createElement('div');
+  popup.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #059669;
+    color: white;
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+  `;
+  popup.innerHTML = `
+    <div style="font-size: 24px; margin-bottom: 8px;">✅</div>
+    <div>${message}</div>
+  `;
+  
+  document.body.appendChild(popup);
+  
+  setTimeout(() => {
+    popup.remove();
+  }, 2000);
+}
+
+// Switch client
+function switchClient() {
+  if (receivingSession.items.length > 0) {
+    if (!confirm('This will end your current session. Continue?')) {
+      return;
+    }
+  }
+  
+  receivingSession = { isActive: false, clientId: null, clientName: null, items: [] };
+  
+  document.getElementById('receivingSelection').style.display = 'block';
+  document.getElementById('receivingSession').style.display = 'none';
+  document.getElementById('receivingClient').value = '';
+}
+
+// Finish session
+function finishSession() {
+  const count = receivingSession.items.length;
+  const client = receivingSession.clientName;
+  
+  if (count === 0) {
+    if (!confirm('No items scanned. End session anyway?')) {
+      return;
+    }
+  }
+  
+  alert(`Session Complete!\n\nClient: ${client}\nItems: ${count}\n\nInventory updated successfully.`);
+  
+  // Reset
+  receivingSession = { isActive: false, clientId: null, clientName: null, items: [] };
+  document.getElementById('receivingSelection').style.display = 'block';
+  document.getElementById('receivingSession').style.display = 'none';
+  document.getElementById('receivingClient').value = '';
+}
+
+// Set up all event listeners
+function setupEventListeners() {
+  console.log('🔧 Setting up event listeners...');
+  
+  // Client selection change
+  const clientSelect = document.getElementById('receivingClient');
+  if (clientSelect) {
+    clientSelect.addEventListener('change', function() {
+      const startBtn = document.getElementById('startReceivingBtn');
+      if (startBtn) {
+        startBtn.disabled = !this.value;
+      }
+    });
+  }
+  
+  // Start session button
+  const startBtn = document.getElementById('startReceivingBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', startSession);
+    startBtn.disabled = true; // Initially disabled
+  }
+  
+  // Process UPC button - try multiple ways to find it
+  let processBtnFound = false;
+  
+  // Try by ID first
+  const scanBtn = document.getElementById('scanBtn');
+  if (scanBtn) {
+    scanBtn.addEventListener('click', processUPC);
+    processBtnFound = true;
+    console.log('✅ Found process button by ID');
+  }
+  
+  // If not found by ID, find by text content
+  if (!processBtnFound) {
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+      if (btn.textContent && (
+          btn.textContent.includes('Process UPC') ||
+          btn.textContent.includes('Process') ||
+          btn.textContent.includes('Scan')
+      )) {
+        btn.addEventListener('click', processUPC);
+        processBtnFound = true;
+        console.log('✅ Found process button by text:', btn.textContent);
+      }
+    });
+  }
+  
+  if (!processBtnFound) {
+    console.log('⚠️ Process UPC button not found');
+  }
+  
+  // UPC input - Enter key
+  const upcInput = document.getElementById('upcInput');
+  if (upcInput) {
+    upcInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        processUPC();
+      }
+    });
+    console.log('✅ UPC input enter key handler added');
+  } else {
+    console.log('⚠️ UPC input not found');
+  }
+  
+  // Switch client button
+  const switchBtn = document.getElementById('switchClientBtn');
+  if (switchBtn) {
+    switchBtn.addEventListener('click', switchClient);
+  }
+  
+  // Finish session button
+  const finishBtn = document.getElementById('finishReceivingBtn');
+  if (finishBtn) {
+    finishBtn.addEventListener('click', finishSession);
+  }
+  
+  console.log('✅ Event listeners setup complete');
+}
+
+// Initialize everything when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🎬 Page loaded - initializing receiving system');
+  
+  setupEventListeners();
+  loadClients();
+  
+  console.log('🎉 Receiving system ready!');
+  console.log('📝 Try these UPCs:', Object.keys(UPC_DATABASE).join(', '));
+});

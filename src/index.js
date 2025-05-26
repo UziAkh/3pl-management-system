@@ -43,10 +43,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/upc', upcRoutes);
 app.use('/api/fix', fixRoutes);
 app.use('/api/boxes', boxRoutes);
-
+app.use('/api/upc', upcRoutes);
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
