@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize all sections
   loadDashboardStats();
   initializeClientSection();
-  initializeProductSection();
+  // initializeProducts();
   initializeTransactionSection();
   initializeHealthSection();
 });

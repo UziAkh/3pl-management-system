@@ -9,6 +9,7 @@ dotenv.config();
 const clientRoutes = require('./routes/clientRoutes');
 const productRoutes = require('./routes/productRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
+const shipmentRoutes = require('./routes/shipmentRoutes');
 const upcRoutes = require('./routes/upcRoutes');
 const fixRoutes = require('./routes/fixRoutes');
 const boxRoutes = require('./routes/boxRoutes');
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/clients', clientRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/shipments', shipmentRoutes);
 app.use('/api/fix', fixRoutes);
 app.use('/api/boxes', boxRoutes);
 app.use('/api/upc', upcRoutes);

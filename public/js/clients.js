@@ -1,3 +1,4 @@
+console.log('CLIENTS.JS FILE LOADED!');
 // Clients section functionality
 function initializeClientSection() {
   const addClientToggleBtn = document.getElementById('addClientToggleBtn');
@@ -15,7 +16,7 @@ function initializeClientSection() {
   });
   
   // Load clients button
-  document.getElementById('loadClientsBtn').addEventListener('click', loadClients);
+  document.getElementById('loadClientsBtn').addEventListener('click', loadClientsFromClientsJS);
   
   // Add client form submission
   document.getElementById('addClientForm').addEventListener('submit', async (e) => {
@@ -55,59 +56,62 @@ function initializeClientSection() {
   });
   
   // Initial load
-  loadClients();
+  loadClientsFromClientsJS();
 }
 
-async function loadClients() {
+async function loadClientsFromClientsJS() {
   const clientsList = document.getElementById('clientsList');
   try {
     clientsList.innerHTML = '<p class="loading-message">Loading clients...</p>';
     
     const response = await fetch('/api/clients');
     const clients = await response.json();
+    console.log('DEBUG: clients length is', clients.length, 'and type is', typeof clients);
     
     if (clients.length === 0) {
       clientsList.innerHTML = '<p class="loading-message">No clients found.</p>';
       return;
     }
     
-    clientsList.innerHTML = '';
-    clients.forEach(client => {
-      const clientElement = document.createElement('div');
-      clientElement.className = 'client-card';
-      clientElement.innerHTML = `
-        <div class="client-header">
-          <div>
-            <h3 class="client-name">${client.name}</h3>
-            <span class="client-code">${client.code}</span>
-          </div>
-          <span class="status-badge ${client.active ? 'status-active' : 'status-inactive'}">
-            ${client.active ? 'Active' : 'Inactive'}
-          </span>
+  console.log('About to create cards for', clients.length, 'clients');
+  clientsList.innerHTML = '';
+  clients.forEach(client => {
+    console.log('Creating card for client:', client.name);
+    const clientElement = document.createElement('div');
+    clientElement.className = 'client-card';
+    clientElement.innerHTML = `
+      <div class="client-header">
+        <div>
+          <h3 class="client-name">${client.name}</h3>
+          <span class="client-code">${client.code}</span>
         </div>
-        
-        <div class="client-info">
-          <div>
-            <div class="info-label">Contact</div>
-            <p class="info-value">${client.contactName || 'N/A'}</p>
-          </div>
-          <div>
-            <div class="info-label">Email</div>
-            <p class="info-value">${client.email || 'N/A'}</p>
-          </div>
-          <div>
-            <div class="info-label">Phone</div>
-            <p class="info-value">${client.phone || 'N/A'}</p>
-          </div>
+        <span class="status-badge ${client.active ? 'status-active' : 'status-inactive'}">
+          ${client.active ? 'Active' : 'Inactive'}
+        </span>
+      </div>
+      
+      <div class="client-info">
+        <div>
+          <div class="info-label">Contact</div>
+          <p class="info-value">${client.contact_name || 'N/A'}</p>
         </div>
-        
-        <div class="client-actions">
-          <button class="btn btn-secondary edit-client-btn" data-id="${client.id}">Edit</button>
-          <button class="btn btn-accent delete-client-btn" data-id="${client.id}">Delete</button>
+        <div>
+          <div class="info-label">Email</div>
+          <p class="info-value">${client.email || 'N/A'}</p>
         </div>
-      `;
-      clientsList.appendChild(clientElement);
-    });
+        <div>
+          <div class="info-label">Phone</div>
+          <p class="info-value">${client.phone || 'N/A'}</p>
+        </div>
+      </div>
+      
+      <div class="client-actions">
+        <button class="btn btn-secondary edit-client-btn" data-id="${client.id}">Edit</button>
+        <button class="btn btn-accent delete-client-btn" data-id="${client.id}">Delete</button>
+      </div>
+    `;
+    clientsList.appendChild(clientElement);
+  });
     
     // Add event listeners for edit/delete buttons
     document.querySelectorAll('.edit-client-btn').forEach(btn => {

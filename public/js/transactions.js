@@ -181,7 +181,7 @@
         try {
             // Find product by UPC
             console.log('Looking for product with UPC:', upc);
-            const product = allProducts.find(p => p.upc === upc);
+            const product = allProducts.find(p => p.upc === upc && p.client_id === currentShipment.clientId);
             
             if (!product) {
                 showNotification(`Product with UPC ${upc} not found`, 'error');
@@ -407,30 +407,80 @@
         }
         
         try {
-            // Create outbound transactions for each item
-            for (const item of currentShipment.items) {
-                const transactionData = {
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    reference: `SHIPMENT-${Date.now()}`,
-                    notes: `Box: ${currentShipment.boxType.name}, Total: ${formatCurrency(currentShipment.totalCost)}`
-                };
-                
-                const response = await fetch('/api/transactions/outbound', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(transactionData)
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to create transaction');
-                }
-            }
-            
-            showNotification('Shipment completed successfully!', 'success');
+    // Generate a single reference for the entire shipment
+    const shipmentReference = `SHIPMENT-${Date.now()}`;
+    
+    // Step 1: Create the shipment record
+    const shipmentData = {
+        clientId: currentShipment.clientId,
+        totalCost: currentShipment.totalCost,
+        boxTypeId: currentShipment.boxType.id,
+        reference: shipmentReference,
+        notes: `Box: ${currentShipment.boxType.name}, Total: ${formatCurrency(currentShipment.totalCost)}`
+    };
+    
+    const shipmentResponse = await fetch('/api/shipments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(shipmentData)
+    });
+    
+    if (!shipmentResponse.ok) {
+        const errorData = await shipmentResponse.json();
+        throw new Error(errorData.message || 'Failed to create shipment');
+    }
+    
+    const shipment = await shipmentResponse.json();
+    console.log('Created shipment:', shipment);
+
+    // Step 2: Create shipment items
+for (const item of currentShipment.items) {
+    const shipmentItemData = {
+        shipmentId: shipment.id,
+        productId: item.productId,
+        quantity: item.quantity
+    };
+    
+    const itemResponse = await fetch('/api/shipments/shipment-items', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(shipmentItemData)
+    });
+    
+    if (!itemResponse.ok) {
+        const errorData = await itemResponse.json();
+        throw new Error(errorData.message || 'Failed to create shipment item');
+    }
+}
+    
+    // Step 3: Create outbound transactions for each item (existing logic)
+    for (const item of currentShipment.items) {
+        const transactionData = {
+            productId: item.productId,
+            quantity: item.quantity,
+            reference: shipmentReference, // Same reference for all items
+            notes: `Shipment ID: ${shipment.id}, Box: ${currentShipment.boxType.name}`
+        };
+        
+        const response = await fetch('/api/transactions/outbound', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create transaction');
+        }
+    }
+    
+    showNotification('Shipment completed successfully!', 'success');
             
             // Reset for next shipment
             resetShipment();
