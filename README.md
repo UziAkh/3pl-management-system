@@ -244,15 +244,15 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 For support, issues, or feature requests:
 - Open an issue on GitHub
-- Contact: [Your contact information]
+- Contact: (469) 745-1123
 
 ## 🏗️ Project Status
 
-**Current Version**: 1.0.0  
+**Current Version**: 1.0.1  
 **Status**: Active Development  
-**Last Updated**: January 2025
+**Last Updated**: May 26th, 2025
 
 ---
 
-**Built with ❤️ for the 3PL industry**
+**Built by Spantik Inc. for the 3PL industry**
 
